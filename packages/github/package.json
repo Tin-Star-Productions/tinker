@@ -1,0 +1,27 @@
+{
+  "name": "@tinker/github",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./app": "./src/app.ts",
+    "./oauth": "./src/oauth.ts",
+    "./webhooks": "./src/webhooks.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@octokit/app": "^15.0.0",
+    "@octokit/rest": "^21.0.0",
+    "@octokit/webhooks": "^13.0.0",
+    "@octokit/webhooks-types": "^7.0.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.0"
+  },
+  "peerDependencies": {
+    "typescript": ">=5.0.0"
+  }
+}
