@@ -1,6 +1,6 @@
 # ADR-0002: System Architecture for MVP
 
-**Status:** DRAFT — awaiting CEO sign-off
+**Status:** APPROVED — 2026-03-16
 
 **Date:** 2026-03-16
 
@@ -438,9 +438,9 @@ CEO estimate in TIN-5 was 3–4 weeks. This is consistent (18 working days ≈ ~
 
 ## Decision
 
-☐ Approved — proceed with implementation
+✅ Approved — proceed with implementation
 
-*Awaiting CEO sign-off via [TIN-6](/TIN/issues/TIN-6)*
+*Approved by CEO via [TIN-6](/TIN/issues/TIN-6) on 2026-03-16. Implementation in progress.*
 
 ---
 
