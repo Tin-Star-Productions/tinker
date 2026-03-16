@@ -29,6 +29,15 @@
     },
     "typecheck": {
       "dependsOn": ["^build"]
+    },
+    "db:generate": {
+      "cache": false
+    },
+    "db:migrate": {
+      "cache": false
+    },
+    "db:migrate:deploy": {
+      "cache": false
     }
   }
 }

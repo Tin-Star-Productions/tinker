@@ -1,0 +1,162 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Enums ────────────────────────────────────────────────────────────────────
+
+enum RunStatus {
+  QUEUED
+  IN_PROGRESS
+  COMPLETED
+}
+
+enum TestStatus {
+  PASS
+  FAIL
+  SKIP
+  ERROR
+}
+
+enum ClassificationKind {
+  PR_RELATED
+  FLAKY
+  INFRASTRUCTURE
+  UNKNOWN
+}
+
+enum FeedbackKind {
+  CORRECT
+  INCORRECT
+}
+
+enum DigestType {
+  EMAIL
+  SLACK
+}
+
+enum OrgRole {
+  OWNER
+  MEMBER
+}
+
+// ─── Models ───────────────────────────────────────────────────────────────────
+
+model Organization {
+  id             String   @id @default(cuid())
+  githubOrgId    Int      @unique
+  name           String
+  slug           String   @unique
+  installationId Int?     @unique
+  createdAt      DateTime @default(now())
+
+  repositories Repository[]
+  members      OrgMember[]
+  digestSubs   DigestSubscription[]
+}
+
+model OrgMember {
+  id           String   @id @default(cuid())
+  orgId        String
+  githubUserId Int
+  githubLogin  String
+  role         OrgRole  @default(MEMBER)
+  createdAt    DateTime @default(now())
+
+  org Organization @relation(fields: [orgId], references: [id])
+
+  @@unique([orgId, githubUserId])
+}
+
+model Repository {
+  id            String   @id @default(cuid())
+  orgId         String
+  githubRepoId  Int      @unique
+  fullName      String   @unique
+  defaultBranch String   @default("main")
+  createdAt     DateTime @default(now())
+
+  org        Organization @relation(fields: [orgId], references: [id])
+  ciRuns     CiRun[]
+  flakyTests FlakyTest[]
+}
+
+model CiRun {
+  id            String     @id @default(cuid())
+  repoId        String
+  githubRunId   BigInt     @unique
+  prNumber      Int?
+  headSha       String
+  branch        String
+  status        RunStatus
+  conclusion    String?
+  logsFetchedAt DateTime?
+  createdAt     DateTime   @default(now())
+  completedAt   DateTime?
+
+  repo            Repository              @relation(fields: [repoId], references: [id])
+  testResults     TestResult[]
+  classifications FailureClassification[]
+}
+
+model TestResult {
+  id           String     @id @default(cuid())
+  ciRunId      String
+  testName     String
+  testSuite    String?
+  status       TestStatus
+  durationMs   Int?
+  errorMessage String?
+  createdAt    DateTime   @default(now())
+
+  ciRun          CiRun                  @relation(fields: [ciRunId], references: [id])
+  classification FailureClassification?
+
+  @@index([ciRunId])
+  @@index([testName])
+}
+
+model FailureClassification {
+  id             String             @id @default(cuid())
+  ciRunId        String
+  testResultId   String             @unique
+  classification ClassificationKind
+  confidence     Float
+  reason         String
+  feedback       FeedbackKind?
+  createdAt      DateTime           @default(now())
+
+  ciRun      CiRun      @relation(fields: [ciRunId], references: [id])
+  testResult TestResult @relation(fields: [testResultId], references: [id])
+}
+
+model FlakyTest {
+  id         String   @id @default(cuid())
+  repoId     String
+  testName   String
+  testSuite  String?
+  flakeScore Float    @default(0)
+  passCount  Int      @default(0)
+  failCount  Int      @default(0)
+  lastSeenAt DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  repo Repository @relation(fields: [repoId], references: [id])
+
+  @@unique([repoId, testName])
+  @@index([repoId, flakeScore])
+}
+
+model DigestSubscription {
+  id        String     @id @default(cuid())
+  orgId     String
+  type      DigestType
+  target    String
+  createdAt DateTime   @default(now())
+
+  org Organization @relation(fields: [orgId], references: [id])
+}
