@@ -34,8 +34,19 @@ jobs:
           NEXT_PUBLIC_APP_URL: ${{ vars.PROD_APP_URL }}
           NEXT_PUBLIC_API_URL: ${{ vars.PROD_API_URL }}
 
-      # TODO: Replace with actual deployment step once infra is provisioned
+      # TODO: Replace with actual deployment step once infra is provisioned (Fly.io per ADR-0002)
       - name: Deploy (placeholder)
         run: echo "Deployment step — configure once infra provider is chosen"
         env:
           DEPLOY_TOKEN: ${{ secrets.DEPLOY_TOKEN }}
+
+      - name: Create Sentry release
+        if: ${{ secrets.SENTRY_AUTH_TOKEN != '' }}
+        uses: getsentry/action-release@v1
+        env:
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          SENTRY_ORG: ${{ secrets.SENTRY_ORG }}
+          SENTRY_PROJECT: ${{ secrets.SENTRY_PROJECT }}
+        with:
+          environment: production
+          version: ${{ github.sha }}

@@ -1,0 +1,46 @@
+# Fly.io configuration for apps/api (Fastify)
+# Copy to apps/api/fly.toml when Fly.io is provisioned (see ADR-0002 + ADR-0003)
+
+app = "tinker-api"
+primary_region = "ord"
+
+[build]
+  dockerfile = "apps/api/Dockerfile"
+
+[env]
+  NODE_ENV = "production"
+  PORT = "3001"
+  SERVICE_NAME = "api"
+
+[http_service]
+  internal_port = 3001
+  force_https = true
+  auto_stop_machines = true
+  auto_start_machines = true
+  min_machines_running = 1
+
+  [http_service.concurrency]
+    type = "connections"
+    hard_limit = 200
+    soft_limit = 150
+
+[[vm]]
+  cpu_kind = "shared"
+  cpus = 1
+  memory_mb = 512
+
+# Health checks consumed by Fly.io machine management
+# Also the endpoints that Betterstack Uptime monitors
+[[services.http_checks]]
+  interval = "15s"
+  grace_period = "5s"
+  method = "GET"
+  path = "/healthz"
+  protocol = "http"
+  timeout = "2s"
+  tls_skip_verify = false
+
+# Log shipping to Betterstack Logs (set BETTERSTACK_SOURCE_TOKEN in fly secrets)
+[log_destination]
+  destination = "betterstack"
+  # token set via: fly secrets set BETTERSTACK_SOURCE_TOKEN=<token> -a tinker-api
