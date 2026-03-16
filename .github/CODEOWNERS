@@ -1,0 +1,11 @@
+# CODEOWNERS
+# These owners will be requested for review on PRs that modify matching paths.
+# Format: <pattern> <owner>
+# Owner can be a GitHub user or team: @username or @org/team-name
+
+# Default: all changes require review
+* @tinker-hq/eng
+
+# Infrastructure changes require extra scrutiny
+/.github/ @tinker-hq/eng
+/docker-compose.yml @tinker-hq/eng

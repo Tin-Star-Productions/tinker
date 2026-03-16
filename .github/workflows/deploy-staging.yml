@@ -1,0 +1,42 @@
+name: Deploy to Staging
+
+on:
+  push:
+    branches: [staging]
+
+concurrency:
+  group: deploy-staging
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Deploy
+    runs-on: ubuntu-latest
+    environment: staging
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v3
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: "pnpm"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build
+        run: pnpm build
+        env:
+          NEXT_PUBLIC_APP_URL: ${{ vars.STAGING_APP_URL }}
+          NEXT_PUBLIC_API_URL: ${{ vars.STAGING_API_URL }}
+
+      # TODO: Replace with actual deployment step once infra is provisioned
+      # Options: Railway, Render, Fly.io, AWS ECS, etc.
+      - name: Deploy (placeholder)
+        run: echo "Deployment step — configure once infra provider is chosen"
+        env:
+          DEPLOY_TOKEN: ${{ secrets.DEPLOY_TOKEN }}

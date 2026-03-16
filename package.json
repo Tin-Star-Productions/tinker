@@ -1,0 +1,24 @@
+{
+  "name": "tinker",
+  "version": "0.1.0",
+  "private": true,
+  "packageManager": "pnpm@9.0.0",
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "test": "turbo run test",
+    "test:watch": "turbo run test:watch",
+    "test:coverage": "turbo run test:coverage",
+    "lint": "turbo run lint",
+    "lint:fix": "turbo run lint:fix",
+    "typecheck": "turbo run typecheck",
+    "db:generate": "pnpm --filter @tinker/db db:generate",
+    "db:migrate": "pnpm --filter @tinker/db db:migrate",
+    "db:reset": "pnpm --filter @tinker/db db:reset",
+    "db:studio": "pnpm --filter @tinker/db db:studio"
+  },
+  "devDependencies": {
+    "turbo": "^2.0.0",
+    "typescript": "^5.4.0"
+  }
+}
