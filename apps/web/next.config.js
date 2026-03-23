@@ -1,5 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  output: "standalone",
   // API calls go to apps/api running on port 3000
   async rewrites() {
     return [

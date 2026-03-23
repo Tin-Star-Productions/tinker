@@ -1,14 +1,17 @@
-import { Worker } from "bullmq";
+import { Worker, Queue } from "bullmq";
 import { Redis } from "ioredis";
 import { prisma } from "@tinker/db";
 import { logger } from "@tinker/observability";
 import { processRunJob } from "./processors/process-run.js";
 import { syncInstallationJob } from "./processors/sync-installation.js";
+import { digestJob } from "./processors/digest.js";
 import {
   PROCESS_RUN_QUEUE,
   SYNC_INSTALLATION_QUEUE,
+  DIGEST_QUEUE,
 } from "./queues.js";
 import type { ProcessRunJobData, SyncInstallationJobData } from "./processors/types.js";
+import type { DigestJobData } from "./processors/digest.js";
 
 const redis = new Redis(process.env["REDIS_URL"] ?? "redis://localhost:6379", {
   maxRetriesPerRequest: null, // Required by BullMQ
@@ -66,12 +69,65 @@ syncWorker.on("failed", (job, err) => {
   );
 });
 
+// ─── Digest Worker ────────────────────────────────────────────────────────────
+
+const digestWorker = new Worker<DigestJobData>(
+  DIGEST_QUEUE,
+  async (job) => {
+    await digestJob(job);
+  },
+  {
+    connection: redis,
+    concurrency: 2,
+  }
+);
+
+digestWorker.on("completed", (job) => {
+  logger.info({ jobId: job.id, orgId: job.data.orgId }, "digest completed");
+});
+
+digestWorker.on("failed", (job, err) => {
+  logger.error({ jobId: job?.id, orgId: job?.data.orgId, err }, "digest failed");
+});
+
+// ─── Digest scheduler — enqueue weekly digest for each org ───────────────────
+
+async function scheduleWeeklyDigests() {
+  const digestQueue = new Queue<DigestJobData>(DIGEST_QUEUE, { connection: redis });
+
+  // Upsert a repeatable job that fires every Monday at 09:00 UTC
+  const orgs = await prisma.organization.findMany({
+    where: { digestSubs: { some: {} } },
+    select: { id: true },
+  });
+
+  for (const org of orgs) {
+    await digestQueue.add(
+      "weekly-digest",
+      { orgId: org.id },
+      {
+        jobId: `weekly-digest-${org.id}`,
+        repeat: { pattern: "0 9 * * 1" }, // Every Monday at 09:00 UTC
+        removeOnComplete: 10,
+        removeOnFail: 10,
+      }
+    );
+  }
+
+  logger.info(`Scheduled weekly digest for ${orgs.length} org(s)`);
+}
+
+scheduleWeeklyDigests().catch((err) =>
+  logger.error({ err }, "Failed to schedule weekly digests")
+);
+
 // ─── Graceful shutdown ────────────────────────────────────────────────────────
 
 const shutdown = async (signal: string) => {
   logger.info(`Received ${signal} — shutting down workers`);
   await processRunWorker.close();
   await syncWorker.close();
+  await digestWorker.close();
   await redis.quit();
   await prisma.$disconnect();
   process.exit(0);

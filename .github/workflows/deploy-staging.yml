@@ -28,17 +28,28 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Build
-        run: pnpm build
-        env:
-          NEXT_PUBLIC_APP_URL: ${{ vars.STAGING_APP_URL }}
-          NEXT_PUBLIC_API_URL: ${{ vars.STAGING_API_URL }}
+      - name: Set up Fly CLI
+        uses: superfly/flyctl-actions/setup-flyctl@master
 
-      # TODO: Replace with actual deployment step once infra is provisioned (Fly.io per ADR-0002)
-      - name: Deploy (placeholder)
-        run: echo "Deployment step — configure once infra provider is chosen"
+      - name: Deploy API to staging
+        run: flyctl deploy --config fly.api.toml --app tinker-api-staging --remote-only
         env:
-          DEPLOY_TOKEN: ${{ secrets.DEPLOY_TOKEN }}
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+
+      - name: Run DB migrations (staging)
+        run: flyctl ssh console --app tinker-api-staging --command "node apps/api/dist/migrate.js"
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+
+      - name: Deploy Web to staging
+        run: flyctl deploy --config fly.web.toml --app tinker-web-staging --remote-only --build-arg NEXT_PUBLIC_API_URL=${{ vars.STAGING_API_URL }}
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+
+      - name: Deploy Worker to staging
+        run: flyctl deploy --config fly.worker.toml --app tinker-worker-staging --remote-only
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
 
       - name: Create Sentry release
         if: ${{ secrets.SENTRY_AUTH_TOKEN != '' }}
