@@ -6,6 +6,11 @@ import { prisma } from "@tinker/db";
 import { logger } from "@tinker/observability";
 import { healthzRoutes } from "./routes/healthz.js";
 import { githubWebhookRoutes } from "./routes/webhooks/github.js";
+import { authRoutes } from "./routes/auth/index.js";
+import { githubAppRoutes } from "./routes/github/index.js";
+import { orgRoutes } from "./routes/orgs/index.js";
+import { repoRoutes } from "./routes/repos/index.js";
+import { authMiddleware } from "./middleware/auth.js";
 
 // ─── Fastify type augmentation ────────────────────────────────────────────────
 
@@ -61,10 +66,18 @@ async function bootstrap() {
     },
   });
 
+  // ─── Auth middleware (runs before all routes except skipAuth ones) ────────
+
+  await app.register(authMiddleware);
+
   // ─── Routes ──────────────────────────────────────────────────────────────
 
   await app.register(healthzRoutes);
   await app.register(githubWebhookRoutes);
+  await app.register(authRoutes);
+  await app.register(githubAppRoutes);
+  await app.register(orgRoutes);
+  await app.register(repoRoutes);
 
   // ─── Start ───────────────────────────────────────────────────────────────
 
